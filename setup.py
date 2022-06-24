@@ -17,5 +17,5 @@ setuptools.setup(
     },
     license='MIT',
     packages=['libpcocheckin'],
-    install_requires=['pypco','json','datetime','logging'],
+    install_requires=['pypco'],
 )
