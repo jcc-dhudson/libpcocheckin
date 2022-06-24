@@ -4,18 +4,18 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='toolbox',
-    version='0.0.3',
-    author='Mike Huls',
-    author_email='mike_huls@hotmail.com',
-    description='Testing installation of Package',
+    name='libpcocheckin',
+    version='0.1',
+    author='David Hudson',
+    author_email='unpublished',
+    description='Functions for working with Planning Center Online Check-in API',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/mike-huls/toolbox',
+    url='https://github.com/jcc-dhudson/libpcocheckin',
     project_urls = {
-        "Bug Tracker": "https://github.com/mike-huls/toolbox/issues"
+        "Bug Tracker": "https://github.com/jcc-dhudson/libpcocheckin/issues"
     },
     license='MIT',
-    packages=['toolbox'],
-    install_requires=['requests'],
+    packages=['libpcocheckin'],
+    install_requires=['pypco','json','datetime','logging'],
 )
