@@ -23,30 +23,36 @@ class CHECKINS:
 
     def get_current_checkins(self, created_at=None, shows_at=None, curr_time=None, updated_at=None, checkouts_only=False, location_id=None):
         if created_at is None:
-            dateNow = datetime.today() - timedelta(hours=336, minutes=0, seconds=5)
-            created_at = dateNow.replace(microsecond=0).isoformat()
+            event_time_query = f"/check-ins/v2/event_times?per_page=100&include=event"
+        else:
+            event_time_query = f"/check-ins/v2/event_times?per_page=100&include=event&where[created_at][gt]={created_at}"
         if curr_time is None:
                 curr_time = datetime.now()
         checkins = [] # gets appended and returned later
 
-        for event_time_resp in self.pco.iterate(f"/check-ins/v2/event_times?per_page=100&include=event&where[created_at][gt]={created_at}"):
+        self.logger(f"event_time_resp uri: {event_time_query}")
+        for event_time_resp in self.pco.iterate(event_time_query):
             shows_at = datetime.strptime(event_time_resp['data']['attributes']['shows_at'], "%Y-%m-%dT%H:%M:%SZ")
             hides_at = datetime.strptime(event_time_resp['data']['attributes']['hides_at'], "%Y-%m-%dT%H:%M:%SZ")
-            
+
             if shows_at < curr_time and hides_at > curr_time:
+                self.logger(f"{event_time_resp['data']['id']}: {event_time_resp['data']['attributes']['shows_at']} -> {event_time_resp['data']['attributes']['hides_at']}")
+                
                 # get the associated event
                 event_time_event_resp = self.pco.get(event_time_resp['data']['relationships']['event']['links']['related'])
                 event = event_time_event_resp['data']
-                self.logger(f"{event_time_resp['data']['id']}: {event_time_resp['data']['attributes']['shows_at']} -> {event_time_resp['data']['attributes']['hides_at']}")
-
+                
                 params = {
                     'include': 'locations,person,checked_in_by',
                 }
                 # for the /check-ins/v2/event_times call, it would be helpful if you could filter by updated_at
                 #  - requested here: https://github.com/planningcenter/developers/issues/997
-                for checkin in self.pco.iterate(f"/check-ins/v2/event_times/{event_time_resp['data']['id']}/check_ins", **params):
+                checkin_query = f"/check-ins/v2/event_times/{event_time_resp['data']['id']}/check_ins"
+                self.logger(f"checkin query: {checkin_query}")
+                for checkin in self.pco.iterate(checkin_query, **params):
                     append = True
-                    
+                    self.logger(f"{checkin['data']['id']}: {checkin['data']['attributes']['first_name']} {checkin['data']['attributes']['last_name']}")
+
                     # Structure the includes in a more friendly way
                     for included in checkin['included']:
                         if included['type'] == 'Person' and included['id'] == checkin['data']['relationships']['person']['data']['id']:
@@ -57,7 +63,7 @@ class CHECKINS:
                             checkin['data']['checked_in_by'] = included
 
                     # Check for reasons to not include this checkin
-                    if not checkouts_only or checkin['data']['attributes']['checked_out_at'] is not None:
+                    if checkouts_only and checkin['data']['attributes']['checked_out_at'] is None:
                         append = False
                     if location_id and checkin['data']['location']['id'] not in location_id:
                         if not checkin['data']['location']['relationships']['parent']['data'] or checkin['data']['location']['relationships']['parent']['data']['id'] not in location_id:
@@ -84,5 +90,3 @@ class CHECKINS:
             if location['id'] == lID:
                 checkin['location'] = location
         return checkin
-
-
