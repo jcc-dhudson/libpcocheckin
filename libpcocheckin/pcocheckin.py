@@ -4,16 +4,22 @@ from datetime import datetime, timedelta
 import logging
 
 class CHECKINS:
-    def __init__(self, pco):
+    def __init__(self, pco, debug=False):
         self.pco = pco
+        self.debug = debug
 
-# get_current_checkins
-# created_at (str/ISO8601): only get events that were created after a specified date
-# shows_at: not implemented
-# curr_time (str/ISO8601): override the current date with the specified date. Helpful for testing.
-# updated_at: not implemented
-# checkouts_only (bool): only return checkins with the checkout value set
-# location_id (str): Only return checkins from a specific location or locations
+    def logger(msg):
+        time = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+        if self.debug:
+            print(f"{time} - {msg}")
+
+    # get_current_checkins
+    # created_at (str/ISO8601): only get events that were created after a specified date
+    # shows_at: not implemented
+    # curr_time (str/ISO8601): override the current date with the specified date. Helpful for testing.
+    # updated_at: not implemented
+    # checkouts_only (bool): only return checkins with the checkout value set
+    # location_id (str): Only return checkins from a specific location or locations
 
     def get_current_checkins(self, created_at=None, shows_at=None, curr_time=None, updated_at=None, checkouts_only=False, location_id=None):
         if created_at is None:
@@ -31,7 +37,7 @@ class CHECKINS:
                 # get the associated event
                 event_time_event_resp = self.pco.get(event_time_resp['data']['relationships']['event']['links']['related'])
                 event = event_time_event_resp['data']
-                #print(f"{event_time_resp['data']['attributes']['shows_at']} -> {event_time_resp['data']['attributes']['hides_at']}")
+                self.logger(f"{event_time_resp['data']['id']}: {event_time_resp['data']['attributes']['shows_at']} -> {event_time_resp['data']['attributes']['hides_at']}")
 
                 params = {
                     'include': 'locations,person,checked_in_by',
