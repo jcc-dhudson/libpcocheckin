@@ -8,7 +8,7 @@ class CHECKINS:
         self.pco = pco
         self.debug = debug
 
-    def logger(msg):
+    def logger(self, msg):
         time = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
         if self.debug:
             print(f"{time} - {msg}")
