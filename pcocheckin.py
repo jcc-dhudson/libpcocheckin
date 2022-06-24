@@ -7,15 +7,23 @@ class CHECKINS:
     def __init__(self, pco):
         self.pco = pco
 
+# get_current_checkins
+# created_at (str/ISO8601): only get events that were created after a specified date
+# shows_at: not implemented
+# curr_time (str/ISO8601): override the current date with the specified date. Helpful for testing.
+# updated_at: not implemented
+# checkouts_only (bool): only return checkins with the checkout value set
+# location_id (str): Only return checkins from a specific location or locations
+
     def get_current_checkins(self, created_at=None, shows_at=None, curr_time=None, updated_at=None, checkouts_only=False, location_id=None):
         if created_at is None:
             dateNow = datetime.today() - timedelta(hours=336, minutes=0, seconds=5)
             created_at = dateNow.replace(microsecond=0).isoformat()
         if curr_time is None:
                 curr_time = datetime.now()
-        checkins = []
-        
-        for event_time_resp in self.pco.iterate(f"/check-ins/v2/event_times?per_page=200&include=event&where[created_at][gt]={created_at}"):
+        checkins = [] # gets appended and returned later
+
+        for event_time_resp in self.pco.iterate(f"/check-ins/v2/event_times?per_page=100&include=event&where[created_at][gt]={created_at}"):
             shows_at = datetime.strptime(event_time_resp['data']['attributes']['shows_at'], "%Y-%m-%dT%H:%M:%SZ")
             hides_at = datetime.strptime(event_time_resp['data']['attributes']['hides_at'], "%Y-%m-%dT%H:%M:%SZ")
             
@@ -23,28 +31,34 @@ class CHECKINS:
                 # get the associated event
                 event_time_event_resp = self.pco.get(event_time_resp['data']['relationships']['event']['links']['related'])
                 event = event_time_event_resp['data']
-                print(f"{event_time_resp['data']['attributes']['shows_at']} -> {event_time_resp['data']['attributes']['hides_at']}")
+                #print(f"{event_time_resp['data']['attributes']['shows_at']} -> {event_time_resp['data']['attributes']['hides_at']}")
+
                 params = {
                     'include': 'locations,person,checked_in_by',
                 }
-                print(f"/check-ins/v2/event_times/{event_time_resp['data']['id']}/check_ins")
+                # for the /check-ins/v2/event_times call, it would be helpful if you could filter by updated_at
+                #  - requested here: https://github.com/planningcenter/developers/issues/997
                 for checkin in self.pco.iterate(f"/check-ins/v2/event_times/{event_time_resp['data']['id']}/check_ins", **params):
                     append = True
-                    if not checkouts_only or checkin['data']['attributes']['checked_out_at'] is not None:
-                        for included in checkin['included']:
-                            if included['type'] == 'Person' and included['id'] == checkin['data']['relationships']['person']['data']['id']:
-                                checkin['data']['person'] = included
-                            elif included['type'] == 'Location':
-                                checkin['data']['location'] = included
-                            elif included['type'] == 'Person' and included['id'] != checkin['data']['relationships']['person']['data']['id']:
-                                checkin['data']['checked_in_by'] = included
+                    
+                    # Structure the includes in a more friendly way
+                    for included in checkin['included']:
+                        if included['type'] == 'Person' and included['id'] == checkin['data']['relationships']['person']['data']['id']:
+                            checkin['data']['person'] = included
+                        elif included['type'] == 'Location':
+                            checkin['data']['location'] = included
+                        elif included['type'] == 'Person' and included['id'] != checkin['data']['relationships']['person']['data']['id']:
+                            checkin['data']['checked_in_by'] = included
 
-                        if location_id and checkin['data']['location']['id'] not in location_id:
-                            if not checkin['data']['location']['relationships']['parent']['data'] or checkin['data']['location']['relationships']['parent']['data']['id'] not in location_id:
-                                append = False
+                    # Check for reasons to not include this checkin
+                    if not checkouts_only or checkin['data']['attributes']['checked_out_at'] is not None:
+                        append = False
+                    if location_id and checkin['data']['location']['id'] not in location_id:
+                        if not checkin['data']['location']['relationships']['parent']['data'] or checkin['data']['location']['relationships']['parent']['data']['id'] not in location_id:
+                            append = False
                         
-                        if append == True:
-                            checkins.append(checkin['data'])
+                    if append == True:
+                        checkins.append(checkin['data'])
         return checkins
 
     def get_passes(self):
