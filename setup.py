@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='libpcocheckin',
-    version='0.2',
+    version='0.5',
     author='David Hudson',
     author_email='unpublished',
     description='Functions for working with Planning Center Online Check-in API',
