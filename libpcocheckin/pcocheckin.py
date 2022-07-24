@@ -27,7 +27,7 @@ class CHECKINS:
         else:
             event_time_query = f"/check-ins/v2/event_times?per_page=100&include=event&where[created_at][gt]={created_at}"
         if curr_time is None:
-                curr_time = datetime.now()
+                curr_time = datetime.utcnow()
         checkins = [] # gets appended and returned later
 
         self.logger(f"event_time_resp uri: {event_time_query}")
